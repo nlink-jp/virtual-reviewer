@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "virtual-reviewer"
+version = "0.1.0"
+description = "AI-powered security review system with LLM expert models"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+    "google-genai>=1.0,<2.0",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+vr-compile = "virtual_reviewer.compile:main"
+vr-intake = "virtual_reviewer.intake:main"
+vr-orchestrate = "virtual_reviewer.orchestrate:main"
+vr-brain = "virtual_reviewer.brain:main"
+vr-report = "virtual_reviewer.report:main"
+vr-questions = "virtual_reviewer.questions:main"
+vr-answers = "virtual_reviewer.answers:main"
