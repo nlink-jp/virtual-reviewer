@@ -137,9 +137,45 @@ def generate(
     raise RuntimeError("Unreachable")
 
 
-def load_file_as_part(file_path: str) -> types.Part:
-    """Load a file and return it as a Part for multimodal input."""
-    path = Path(file_path)
+ALLOWED_MIME_PREFIXES = ("image/", "application/pdf")
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
+
+
+def load_file_as_part(file_path: str, *, base_dir: str | None = None) -> types.Part:
+    """Load a file and return it as a Part for multimodal input.
+
+    Security measures:
+    - Path traversal prevention: resolved path must be under base_dir (if given)
+    - Symlink resolution: real path is checked, not the link target
+    - File size limit: MAX_FILE_SIZE (50 MB)
+    - MIME type allowlist: only images and PDFs
+    """
+    path = Path(file_path).resolve()
+
+    # Path traversal prevention
+    if base_dir is not None:
+        base = Path(base_dir).resolve()
+        if not str(path).startswith(str(base) + os.sep) and path != base:
+            raise ValueError(
+                f"Path traversal detected: {file_path} resolves outside {base_dir}"
+            )
+
+    if not path.is_file():
+        raise FileNotFoundError(f"Not a file: {file_path}")
+
+    # File size limit
+    size = path.stat().st_size
+    if size > MAX_FILE_SIZE:
+        raise ValueError(
+            f"File too large: {size} bytes (max {MAX_FILE_SIZE} bytes)"
+        )
+
+    # MIME type allowlist
     mime_type = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
+    if not any(mime_type.startswith(prefix) for prefix in ALLOWED_MIME_PREFIXES):
+        raise ValueError(
+            f"Unsupported file type: {mime_type} (allowed: {ALLOWED_MIME_PREFIXES})"
+        )
+
     data = path.read_bytes()
     return types.Part.from_bytes(data=data, mime_type=mime_type)
